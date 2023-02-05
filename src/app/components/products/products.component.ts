@@ -36,8 +36,9 @@ export class ProductsComponent {
   readonly categoriesForm: FormGroup = new FormGroup({});
   readonly categoriesFormValue$: Observable<string[]> =
     this.categoriesForm.valueChanges.pipe(
-      tap(console.log),
-      map((form) => Object.keys(form).filter((k) => form[k] === true))
+      startWith([]),
+      map((form) => Object.keys(form).filter((k) => form[k] === true)),
+      shareReplay(1)
     );
 
   // stores
@@ -47,8 +48,9 @@ export class ProductsComponent {
   readonly storesForm: FormGroup = new FormGroup({});
   readonly storesFormValue$: Observable<string[]> =
     this.storesForm.valueChanges.pipe(
-      tap(console.log),
-      map((form) => Object.keys(form).filter((k) => form[k] === true))
+      startWith([]),
+      map((form) => Object.keys(form).filter((k) => form[k] === true)),
+      shareReplay(1)
     );
 
   // priceForm
@@ -68,16 +70,21 @@ export class ProductsComponent {
     { id: '3', value: 3, stars: [1, 1, 1, 0, 0] },
     { id: '4', value: 2, stars: [1, 1, 0, 0, 0] },
     { id: '5', value: 1, stars: [1, 0, 0, 0, 0] },
-  ]).pipe(tap((ratingOptions) => this._addControlsToRatingForm(ratingOptions)));
+  ]).pipe(
+    tap((ratingOptions) => this._addControlsToRatingForm(ratingOptions)),
+    shareReplay(1)
+  );
   readonly ratingForm: FormGroup = new FormGroup({});
   readonly ratingFormValue$: Observable<number[]> =
     this.ratingForm.valueChanges.pipe(
+      startWith([]),
       map((form) =>
         Object.keys(form).reduce(
           (a, c) => (form[c] === true ? [...a, +c] : a),
           [] as number[]
         )
-      )
+      ),
+      shareReplay(1)
     );
 
   // limitForm
@@ -115,8 +122,43 @@ export class ProductsComponent {
   readonly products$: Observable<ProductModel[]> = combineLatest([
     this._productsService.getAll(),
     this.sortFormValue$,
+    this.categoriesFormValue$,
+    this.storesFormValue$,
+    this.priceFormValue$,
+    this.ratingFormValue$,
   ]).pipe(
-    map(([products, sortValue]) => this._sortProducts(products, sortValue)),
+    map(
+      ([
+        products,
+        sortValue,
+        categoriesFormValue,
+        storesFormValue,
+        priceFormValue,
+        ratingFormValue,
+      ]) =>
+        this._sortProducts(products, sortValue)
+          .filter((product) =>
+            categoriesFormValue.length > 0
+              ? categoriesFormValue.includes(product.categoryId)
+              : true
+          )
+          .filter((product) =>
+            storesFormValue.length > 0
+              ? product.storeIds.filter((sId) => storesFormValue.includes(sId))
+                  .length > 0
+              : true
+          )
+          .filter((product) => {
+            const priceFrom: number = priceFormValue.priceFrom ?? 0;
+            const priceTo: number = priceFormValue.priceTo ?? Infinity;
+            return product.price >= priceFrom && product.price <= priceTo;
+          })
+          .filter((product) =>
+            ratingFormValue.length > 0
+              ? ratingFormValue.includes(Math.floor(product.ratingValue))
+              : true
+          )
+    ),
     shareReplay(1)
   );
 

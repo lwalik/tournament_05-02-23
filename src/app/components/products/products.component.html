@@ -185,6 +185,7 @@
                   class="page-item"
                   *ngFor="
                     let pageNumber of pageNumberOptions.pages;
+                    let first = first;
                     let last = last
                   "
                   (click)="onPageNumberClicked(pageNumber)"
@@ -192,14 +193,14 @@
                   <a
                     class="page-link mx-1 rounded"
                     [ngClass]="{ active: selectedPageNumber === pageNumber }"
-                    *ngIf="!last"
+                    *ngIf="!last || first"
                     >{{ pageNumber }}</a
                   >
                 </li>
                 <li class="page-item">
                   <a class="page-link mx-1 text-body rounded disabled">...</a>
                 </li>
-                <li class="page-item">
+                <li class="page-item" *ngIf="pageNumberOptions.lastPage !== 1">
                   <a
                     class="page-link mx-1 rounded"
                     [ngClass]="{
