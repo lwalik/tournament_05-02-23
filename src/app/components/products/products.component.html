@@ -74,6 +74,7 @@
         class="col-12 col-lg-9 col-md-8"
         *ngIf="products$ | async as products"
       >
+        <p>{{ sortFormValue$ | async | json }}</p>
         <div class="d-lg-flex justify-content-between align-items-center">
           <div class="mb-3 mb-lg-0">
             <p class="mb-0">
@@ -94,10 +95,14 @@
               </select>
             </div>
             <div>
-              <select class="form-select">
-                <option value="Featured">Featured</option>
-                <option value="Low to High">Low to High</option>
-                <option value="High to Low">High to Low</option>
+              <select class="form-select" [formControl]="sortForm">
+                <option
+                  *ngFor="let sort of displaySortOptions$ | async"
+                  [value]="sort"
+                  [selected]="sort === sortForm.value"
+                >
+                  {{ sort }}
+                </option>
               </select>
             </div>
           </div>

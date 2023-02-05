@@ -5,17 +5,18 @@ import {
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Observable, combineLatest, of } from 'rxjs';
-import { filter, map, shareReplay, startWith, tap } from 'rxjs/operators';
+import { map, shareReplay, startWith, tap } from 'rxjs/operators';
 import { CategoryModel } from '../../models/category.model';
 import { StoreModel } from '../../models/store.model';
 import { PriceFormQueryModel } from '../../query-models/price-form.query-model';
 import { RatingOptionQueryModel } from '../../query-models/rating-option.query-model';
-import { ProductCardWithCategoryQueryModel } from '../../query-models/product-card-with-category.query-model';
 import { ProductModel } from '../../models/product.model';
+import { ProductCardWithCategoryQueryModel } from '../../query-models/product-card-with-category.query-model';
 import { CategoriesService } from '../../services/categories.service';
 import { StoresService } from '../../services/stores.service';
 import { ProductsService } from '../../services/products.service';
-import { LimitFormQueryModel } from 'src/app/query-models/limit-form.query-model';
+import { SortOptionsService } from '../../services/sort-options.service';
+import { SortFormModel } from 'src/app/models/sort-form.model';
 
 @Component({
   selector: 'app-products',
@@ -82,13 +83,34 @@ export class ProductsComponent {
   readonly limitForm: FormControl = new FormControl(6);
   readonly limitFormValue$: Observable<number> =
     this.limitForm.valueChanges.pipe(startWith(6), shareReplay(1));
-
   readonly limitOptions$: Observable<number[]> = of([6, 12, 18]);
 
+  // sortForm
+  readonly sortOptions$: Observable<Record<string, SortFormModel>> =
+    this._sortOptionsService.getAll().pipe(shareReplay(1));
+
+  readonly displaySortOptions$: Observable<string[]> = this.sortOptions$.pipe(
+    map((sortOptions) => Object.keys(sortOptions))
+  );
+  readonly sortForm: FormControl = new FormControl('Featured');
+  readonly sortFormValue$: Observable<SortFormModel> = combineLatest([
+    this.sortForm.valueChanges.pipe(startWith('Featured')),
+    this.sortOptions$,
+  ]).pipe(
+    map(
+      ([sortValue, sortOptions]: [string, Record<string, SortFormModel>]) =>
+        sortOptions[sortValue]
+    )
+  );
+
   // products
-  readonly products$: Observable<ProductModel[]> = this._productsService
-    .getAll()
-    .pipe(shareReplay(1));
+  readonly products$: Observable<ProductModel[]> = combineLatest([
+    this._productsService.getAll(),
+    this.sortFormValue$,
+  ]).pipe(
+    map(([products, sortValue]) => this._sortProducts(products, sortValue)),
+    shareReplay(1)
+  );
 
   readonly displayProducts$: Observable<ProductCardWithCategoryQueryModel[]> =
     combineLatest([
@@ -112,7 +134,8 @@ export class ProductsComponent {
   constructor(
     private _categoriesService: CategoriesService,
     private _storesService: StoresService,
-    private _productsService: ProductsService
+    private _productsService: ProductsService,
+    private _sortOptionsService: SortOptionsService
   ) {}
 
   private _addControlsToCategoriesForm(categories: CategoryModel[]): void {
@@ -162,5 +185,16 @@ export class ProductsComponent {
     return new Array(5).fill(0).map((_, idx) => {
       return ratingValue >= idx + 1 ? 1 : ratingValue > idx ? 0.5 : 0;
     });
+  }
+
+  private _sortProducts(
+    products: ProductModel[],
+    sortValue: SortFormModel
+  ): ProductModel[] {
+    return products.sort((a: Record<string, any>, b: Record<string, any>) =>
+      sortValue.order === 'asc'
+        ? a[sortValue.sortBy] - b[sortValue.sortBy]
+        : b[sortValue.sortBy] - a[sortValue.sortBy]
+    );
   }
 }
