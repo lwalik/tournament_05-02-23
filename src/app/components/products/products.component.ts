@@ -5,9 +5,10 @@ import {
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Observable } from 'rxjs';
-import { filter, map, tap } from 'rxjs/operators';
+import { filter, map, startWith, tap } from 'rxjs/operators';
 import { CategoryModel } from '../../models/category.model';
 import { StoreModel } from '../../models/store.model';
+import { PriceFormQueryModel } from '../../query-models/price-form.query-model';
 import { CategoriesService } from '../../services/categories.service';
 import { StoresService } from '../../services/stores.service';
 
@@ -18,6 +19,7 @@ import { StoresService } from '../../services/stores.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductsComponent {
+  // categories
   readonly categories$: Observable<CategoryModel[]> = this._categoriesService
     .getAll()
     .pipe(tap((categories) => this.addControlsToCategoriesForm(categories)));
@@ -27,6 +29,8 @@ export class ProductsComponent {
       tap(console.log),
       map((form) => Object.keys(form).filter((k) => form[k] === true))
     );
+
+  //stores
   readonly stores$: Observable<StoreModel[]> = this._storesService
     .getAll()
     .pipe(tap((stores) => this.addControlsToStoresForm(stores)));
@@ -35,6 +39,16 @@ export class ProductsComponent {
     this.storesForm.valueChanges.pipe(
       tap(console.log),
       map((form) => Object.keys(form).filter((k) => form[k] === true))
+    );
+
+  //priceForm
+  readonly priceForm: FormGroup = new FormGroup({
+    priceFrom: new FormControl(),
+    priceTo: new FormControl(),
+  });
+  readonly priceFormValue$: Observable<PriceFormQueryModel> =
+    this.priceForm.valueChanges.pipe(
+      startWith({ priceFrom: 0, priceTo: Infinity })
     );
 
   constructor(

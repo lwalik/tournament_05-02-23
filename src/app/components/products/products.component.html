@@ -16,7 +16,7 @@
             }}</label>
           </div>
         </form>
-        <form [formGroup]="storesForm">
+        <form class="mb-8" [formGroup]="storesForm">
           <h5 class="mb-3">Stores</h5>
           <div *ngFor="let item of stores$ | async" class="form-check mb-2">
             <input
@@ -29,6 +29,20 @@
               item.name
             }}</label>
           </div>
+        </form>
+        <form [formGroup]="priceForm">
+          <h5 class="mb-3">Price from</h5>
+          <input
+            class="form-control mb-3"
+            type="number"
+            formControlName="priceFrom"
+          />
+          <h5 class="mb-3">Price to</h5>
+          <input
+            class="form-control mb-3"
+            type="number"
+            formControlName="priceTo"
+          />
         </form>
       </div>
       <div class="col-12 col-lg-9 col-md-8"></div>
