@@ -5,7 +5,15 @@ import {
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
-import { filter, map, shareReplay, startWith, tap } from 'rxjs/operators';
+import {
+  filter,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+  take,
+  tap,
+} from 'rxjs/operators';
 import { CategoryModel } from '../../models/category.model';
 import { StoreModel } from '../../models/store.model';
 import { PriceFormQueryModel } from '../../query-models/price-form.query-model';
@@ -170,7 +178,8 @@ export class ProductsComponent {
           pages: new Array(maxPages).fill(0).map((_, idx) => +idx + 1) ?? [1],
           lastPage: maxPages ?? 1,
         };
-      })
+      }),
+      tap((options) => this._checkCurrentPage(options.lastPage))
     );
 
   readonly displayProducts$: Observable<ProductCardWithCategoryQueryModel[]> =
@@ -271,5 +280,12 @@ export class ProductsComponent {
         ? a[sortValue.sortBy] - b[sortValue.sortBy]
         : b[sortValue.sortBy] - a[sortValue.sortBy]
     );
+  }
+
+  private _checkCurrentPage(maxPage: number): void {
+    const curPage: number = this._pageNumberSubject.getValue();
+    if (curPage > maxPage) {
+      this._pageNumberSubject.next(1);
+    }
   }
 }
