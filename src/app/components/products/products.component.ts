@@ -4,19 +4,20 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { Observable, combineLatest, of } from 'rxjs';
-import { map, shareReplay, startWith, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
+import { filter, map, shareReplay, startWith, tap } from 'rxjs/operators';
 import { CategoryModel } from '../../models/category.model';
 import { StoreModel } from '../../models/store.model';
 import { PriceFormQueryModel } from '../../query-models/price-form.query-model';
 import { RatingOptionQueryModel } from '../../query-models/rating-option.query-model';
+import { SortFormModel } from '../../models/sort-form.model';
 import { ProductModel } from '../../models/product.model';
+import { PageNumberOptionsQueryModel } from '../../query-models/page-number-options.query-model';
 import { ProductCardWithCategoryQueryModel } from '../../query-models/product-card-with-category.query-model';
 import { CategoriesService } from '../../services/categories.service';
 import { StoresService } from '../../services/stores.service';
 import { ProductsService } from '../../services/products.service';
 import { SortOptionsService } from '../../services/sort-options.service';
-import { SortFormModel } from 'src/app/models/sort-form.model';
 
 @Component({
   selector: 'app-products',
@@ -103,6 +104,13 @@ export class ProductsComponent {
     )
   );
 
+  // pageNumber
+  private _pageNumberSubject: BehaviorSubject<number> =
+    new BehaviorSubject<number>(1);
+  public pageNumber$: Observable<number> = this._pageNumberSubject
+    .asObservable()
+    .pipe(shareReplay(1));
+
   // products
   readonly products$: Observable<ProductModel[]> = combineLatest([
     this._productsService.getAll(),
@@ -112,21 +120,34 @@ export class ProductsComponent {
     shareReplay(1)
   );
 
+  readonly pageNumberOptions$: Observable<PageNumberOptionsQueryModel> =
+    combineLatest([this.products$, this.limitFormValue$]).pipe(
+      map(([products, limitValue]) => {
+        const maxPages: number = Math.ceil(products.length / limitValue);
+        return {
+          pages: new Array(maxPages).fill(0).map((_, idx) => +idx + 1) ?? [1],
+          lastPage: maxPages ?? 1,
+        };
+      })
+    );
+
   readonly displayProducts$: Observable<ProductCardWithCategoryQueryModel[]> =
     combineLatest([
       this.products$,
       this.categories$,
       this.limitFormValue$,
+      this.pageNumber$,
     ]).pipe(
       map(
-        ([products, categories, limitValue]: [
+        ([products, categories, limitValue, pageNumber]: [
           ProductModel[],
           CategoryModel[],
+          number,
           number
         ]) =>
           this._mapToProductCardWithCategoryQuery(products, categories).slice(
-            0,
-            limitValue
+            (pageNumber - 1) * limitValue,
+            pageNumber * limitValue
           )
       )
     );
@@ -137,6 +158,18 @@ export class ProductsComponent {
     private _productsService: ProductsService,
     private _sortOptionsService: SortOptionsService
   ) {}
+
+  onPageNumberClicked(pageNumber: number): void {
+    this._pageNumberSubject.next(pageNumber);
+  }
+
+  onPrevPageBtnClicked(): void {
+    this._pageNumberSubject.next(this._pageNumberSubject.getValue() - 1);
+  }
+
+  onNextPageBtnClicked(): void {
+    this._pageNumberSubject.next(this._pageNumberSubject.getValue() + 1);
+  }
 
   private _addControlsToCategoriesForm(categories: CategoryModel[]): void {
     categories.forEach((c) => {
