@@ -4,17 +4,18 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { combineLatest, Observable, of } from 'rxjs';
+import { Observable, combineLatest, of } from 'rxjs';
 import { filter, map, shareReplay, startWith, tap } from 'rxjs/operators';
 import { CategoryModel } from '../../models/category.model';
 import { StoreModel } from '../../models/store.model';
 import { PriceFormQueryModel } from '../../query-models/price-form.query-model';
-import { ProductModel } from '../../models/product.model';
 import { RatingOptionQueryModel } from '../../query-models/rating-option.query-model';
+import { ProductCardWithCategoryQueryModel } from '../../query-models/product-card-with-category.query-model';
+import { ProductModel } from '../../models/product.model';
 import { CategoriesService } from '../../services/categories.service';
 import { StoresService } from '../../services/stores.service';
 import { ProductsService } from '../../services/products.service';
-import { ProductCardWithCategoryQueryModel } from 'src/app/query-models/product-card-with-category.query-model';
+import { LimitFormQueryModel } from 'src/app/query-models/limit-form.query-model';
 
 @Component({
   selector: 'app-products',
@@ -77,11 +78,34 @@ export class ProductsComponent {
       )
     );
 
+  // limitForm
+  readonly limitForm: FormControl = new FormControl(6);
+  readonly limitFormValue$: Observable<number> =
+    this.limitForm.valueChanges.pipe(startWith(6), shareReplay(1));
+
+  readonly limitOptions$: Observable<number[]> = of([6, 12, 18]);
+
   // products
-  readonly products$: Observable<ProductCardWithCategoryQueryModel[]> =
-    combineLatest([this._productsService.getAll(), this.categories$]).pipe(
-      map(([products, categories]: [ProductModel[], CategoryModel[]]) =>
-        this._mapToProductCardWithCategoryQuery(products, categories)
+  readonly products$: Observable<ProductModel[]> = this._productsService
+    .getAll()
+    .pipe(shareReplay(1));
+
+  readonly displayProducts$: Observable<ProductCardWithCategoryQueryModel[]> =
+    combineLatest([
+      this.products$,
+      this.categories$,
+      this.limitFormValue$,
+    ]).pipe(
+      map(
+        ([products, categories, limitValue]: [
+          ProductModel[],
+          CategoryModel[],
+          number
+        ]) =>
+          this._mapToProductCardWithCategoryQuery(products, categories).slice(
+            0,
+            limitValue
+          )
       )
     );
 
