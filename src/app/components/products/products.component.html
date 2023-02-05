@@ -200,7 +200,13 @@
                 <li class="page-item">
                   <a class="page-link mx-1 text-body rounded disabled">...</a>
                 </li>
-                <li class="page-item" *ngIf="pageNumberOptions.lastPage !== 0">
+                <li
+                  class="page-item"
+                  *ngIf="
+                    pageNumberOptions.lastPage !== 0 &&
+                    pageNumberOptions.lastPage !== 1
+                  "
+                >
                   <a
                     class="page-link mx-1 rounded"
                     [ngClass]="{
