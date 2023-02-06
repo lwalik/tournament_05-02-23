@@ -6,6 +6,7 @@ import {
 import { FormControl, FormGroup } from '@angular/forms';
 import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
 import {
+  debounceTime,
   filter,
   map,
   shareReplay,
@@ -68,7 +69,8 @@ export class ProductsComponent {
   });
   readonly priceFormValue$: Observable<PriceFormQueryModel> =
     this.priceForm.valueChanges.pipe(
-      startWith({ priceFrom: 0, priceTo: Infinity })
+      startWith({ priceFrom: 0, priceTo: Infinity }),
+      debounceTime(500)
     );
 
   // ratingForm
